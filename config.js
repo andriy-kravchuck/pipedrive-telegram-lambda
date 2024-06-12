@@ -4,10 +4,10 @@ module.exports = {
       //Provide details for local configuration
     },
     aws_remote_config: {
-      accessKeyId: 'AKIAZYZL4TKP5IQNCPXT',
-      secretAccessKey: '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',
-      region: 'eu-north-1',
+      accessKeyId: process.env.ACCESS_KEY_ID,
+      secretAccessKey: process.env.ACCESS_KEY_ID,
+      region: process.env.REGION,
     },
-    clientId: "e550ff9e5f073ffc",
-    clientSecret: "004e7d335e26019cfb3789d6a3f402acc3288cc4"
+    clientId: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET
 };
