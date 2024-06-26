@@ -6,8 +6,9 @@ const config = require('./config.js');
 const request = require('request');
 
 const app = express();
-const port = 8080
+const port = 8080;
 
+console.log(config.aws_remote_config);
 AWS.config.update(config.aws_remote_config);
 
 const docClient = new AWS.DynamoDB.DocumentClient();
@@ -40,7 +41,36 @@ app.get("/callback", async function (req, res) {
 );
 });
 
+app.post("/sendRequest", async function (req, res) {
+  const { auth, bulk, url, params: qs, options } = req.body;
+  const { method, headers, body } = options;
+
+  let apiUrl = (auth ? config.apiUrl : config.apiAuthUrl) + url;
+
+  request({
+    method: method,
+    uri: apiUrl,
+    qs,
+    body, 
+    headers,
+  }, function (error, response, body) {
+    console.log({error, body});
+
+    if (error) {
+      res.send({
+        success: false,
+        message: error
+      });
+    } else {
+      res.send(body);
+    }
+})
+  
+
+});
+
 app.get("/contact/:telegram_id", async function (req, res) {
+  console.log(req.params.telegram_id);
   try {
     const params = {
         TableName: config.aws_table_name,
@@ -50,6 +80,9 @@ app.get("/contact/:telegram_id", async function (req, res) {
     };
 
     docClient.get(params, function (err, data) {
+
+      console.log(params);
+
       if (err) {
           res.send({
               success: false,
@@ -94,6 +127,37 @@ app.post("/contact", async function (req, res) {
               message: 'Added contact',
               data
           });
+      }
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Could not create user" });
+  }
+});
+
+app.post("/contact/list", async function (req, res) {
+  const { telegramListIds} = req.body;
+
+  const Keys = telegramListIds.trim().split(',').map(id => ({ telegram_id: id }));
+
+  let params = {RequestItems: {}};
+  params.RequestItems[config.aws_table_name] = { Keys };
+
+  try {
+    await docClient.batchGet(params, function (err, data) {
+      if (err) {
+        res.send({
+            success: false,
+            message: err
+        });
+      } else {
+        Item = data.Responses[config.aws_table_name];
+        res.send({
+            success: true,
+            message: 'Get list contact',
+            data: { Item }
+        });
       }
     });
 
